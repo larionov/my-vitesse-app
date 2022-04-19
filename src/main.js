@@ -13,6 +13,13 @@ import 'uno.css';
 const routes = setupLayouts(generatedRoutes);
 import { useRouter, useRoute } from 'vue-router';
 
+import {
+  extractLocaleFromPath,
+  getMessages,
+  install as i18nInstall,
+} from './modules/i18n.js';
+import { install as piniaInstall } from './modules/pinia.js';
+
 // https://github.com/antfu/vite-ssg
 export const createApp = ViteSSG(
   App,
@@ -25,9 +32,10 @@ export const createApp = ViteSSG(
   },
   async (ctx) => {
     // install all modules under `modules/`
-    Object.values(import.meta.globEager('./modules/*.js')).forEach((i) =>
-      i.install?.(ctx),
-    );
+    // Object.values(import.meta.globEager('./modules/*.js')).forEach((i) =>
+    //   i.install?.(ctx),
+    // );
+    piniaInstall(ctx);
 
     const { app, url, router, isClient, initialState } = ctx;
 
@@ -37,7 +45,11 @@ export const createApp = ViteSSG(
     //console.log({ ctx }, router.currentRoute.value);
 
     router.beforeResolve(async (to) => {
-      console.log({ to }, to.meta, ctx);
+      const lang = extractLocaleFromPath(to.href);
+      const messages = { [lang]: (await getMessages[lang]()).default };
+      ctx.lang = lang;
+      console.log({ to }, to.meta, ctx, lang, messages);
+      i18nInstall({ app: ctx.app, lang, messages });
     });
     const head = createHead();
     app.use(head);
